@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -41,6 +42,43 @@ func (cfg *apiConfig) resetMiddlewareMetrics(w http.ResponseWriter, _ *http.Requ
 	w.WriteHeader(http.StatusOK)
 }
 
+func respondWithJSON(w http.ResponseWriter, code int, payload any) error {
+	response, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(code)
+	w.Write(response)
+	return nil
+}
+
+func respondWithError(w http.ResponseWriter, code int, msg string) error {
+	return respondWithJSON(w, code, map[string]string{"error": msg})
+}
+
+func validateChirp(w http.ResponseWriter, r *http.Request) {
+	type input struct {
+		Body string `json:"body"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	payload := input{}
+	err := decoder.Decode(&payload)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
+		return
+	}
+
+	if len(payload.Body) > 140 {
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, map[string]bool{"valid": true})
+}
+
 func main() {
 	mux := http.NewServeMux()
 	apiCfg := apiConfig{}
@@ -48,6 +86,7 @@ func main() {
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filePathRoot)))))
 	mux.HandleFunc("GET /admin/metrics", apiCfg.middlewareMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetMiddlewareMetrics)
+	mux.HandleFunc("POST /api/validate_chirp", validateChirp)
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
