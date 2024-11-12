@@ -13,8 +13,8 @@ Export env vars to be able to connect by issuing `psql` with no parameters:
 ```
 export PGHOST=localhost
 export PGPORT=5432
-export PGUSER=username
-export PGPASSWORD=myPassword
+export PGUSER=omg
+export PGPASSWORD=wtf
 export PGDATABASE=chirpy
 ```
 
