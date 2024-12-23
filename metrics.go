@@ -18,8 +18,3 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(template, cfg.fileserverHits.Load())))
 }
-
-func (cfg *apiConfig) handlerResetMetrics(w http.ResponseWriter, _ *http.Request) {
-	cfg.fileserverHits.Store(0)
-	w.WriteHeader(http.StatusOK)
-}

@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/szmktk/chirpy/internal/database"
 )
 
 type User struct {
@@ -18,18 +16,12 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
-func mapUser(u database.User) *User {
-	return &User{
-		ID:        u.ID,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-		Email:     u.Email,
-	}
-}
-
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type input struct {
 		Email string `json:"email"`
+	}
+	type response struct {
+		User
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -53,19 +45,12 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	respondWithJSON(w, 201, mapUser(user))
-}
-
-func (cfg *apiConfig) handlerDeleteAllUsers(w http.ResponseWriter, r *http.Request) {
-	platform := os.Getenv("PLATFORM")
-	if platform != "dev" {
-		respondWithError(w, http.StatusForbidden, fmt.Sprintf("Operation not allowed on platform: '%s'", platform))
-		return
-	}
-
-	if err := cfg.db.DeleteUsers(r.Context()); err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error deleting users: %s", err))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	respondWithJSON(w, http.StatusCreated, response{
+		User: User{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
+	})
 }
