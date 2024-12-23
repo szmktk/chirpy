@@ -1,0 +1,22 @@
+services:
+  db:
+    ports:
+      - "5432:5432"
+    image: postgres:15
+    volumes:
+      - chirpy-db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "4321:8080"
+    depends_on:
+      - db
+
+volumes:
+  chirpy-db-data:
