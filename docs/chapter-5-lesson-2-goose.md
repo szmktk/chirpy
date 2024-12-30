@@ -14,6 +14,8 @@ To install `goose`:
 go install github.com/pressly/goose/v3/cmd/goose@latest
 ```
 
+☝️ This is the method suggested by package maintainers, but I prefer to install with Homebrew anyway.
+
 To run the migration use the connection string in schema directory (migration file must be there):
 
 ```
