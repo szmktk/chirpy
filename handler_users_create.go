@@ -56,8 +56,6 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	}
 	user, err := cfg.db.CreateUser(r.Context(), params)
 	if err != nil {
-		// TODO: handle case when trying to create a user with the same email
-		// also differentiate between client & server errors here
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating user: %s", err))
 		return
 	}
