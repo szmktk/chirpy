@@ -39,7 +39,7 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 	dbChirp, err := cfg.db.GetChirp(r.Context(), chirpUUID)
 	if err != nil {
 		logger.Info("Chirp not found", "err", err)
-		respondWithError(w, http.StatusNotFound, fmt.Sprint("Chirp with given id has not been found"))
+		respondWithError(w, http.StatusNotFound, "Chirp with given id has not been found")
 		return
 	}
 

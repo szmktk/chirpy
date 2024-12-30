@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/szmktk/chirpy/internal/auth"
+	"github.com/szmktk/chirpy/internal/database"
 )
 
 type User struct {
@@ -18,7 +20,8 @@ type User struct {
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type input struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	type response struct {
 		User
@@ -36,8 +39,22 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, http.StatusBadRequest, "Email cannot be empty")
 		return
 	}
+	if payload.Password == "" {
+		respondWithError(w, http.StatusBadRequest, "Password cannot be empty")
+		return
+	}
 
-	user, err := cfg.db.CreateUser(r.Context(), payload.Email)
+	hashedPassword, err := auth.HashPassword(payload.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error hashing user password: %s", err))
+		return
+	}
+
+	params := database.CreateUserParams{
+		Email:          payload.Email,
+		HashedPassword: hashedPassword,
+	}
+	user, err := cfg.db.CreateUser(r.Context(), params)
 	if err != nil {
 		// TODO: handle case when trying to create a user with the same email
 		// also differentiate between client & server errors here
