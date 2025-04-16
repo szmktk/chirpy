@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -104,4 +105,51 @@ func TestMakeJWT_Expiration(t *testing.T) {
 	// Validate the expired JWT
 	_, err = auth.ValidateJWT(token, tokenSecret)
 	assert.Error(t, err, "error should occur when validating an expired JWT")
+}
+
+func TestGetBearerToken(t *testing.T) {
+	scenarios := []struct {
+		name          string
+		headers       http.Header
+		expectedToken string
+		expectedError string
+	}{
+		{
+			name:          "ok",
+			headers:       http.Header{"Authorization": {"Bearer myJsonWebToken"}},
+			expectedToken: "myJsonWebToken",
+		},
+		{
+			name:          "empty auth header",
+			headers:       http.Header{"Authorization": {""}},
+			expectedToken: "",
+			expectedError: "authorization header not found",
+		},
+		{
+			name:          "missing bearer prefix",
+			headers:       http.Header{"Authorization": {"myJsonWebToken"}},
+			expectedToken: "",
+			expectedError: "invalid authorization header format",
+		},
+		{
+			name:          "invalid auth header format",
+			headers:       http.Header{"Authorization": {"BearermyJsonWebToken"}},
+			expectedToken: "",
+			expectedError: "invalid authorization header format",
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			token, err := auth.GetBearerToken(scenario.headers)
+
+			if scenario.expectedError == "" {
+				assert.NoError(t, err)
+				assert.Equal(t, scenario.expectedToken, token)
+			} else {
+				assert.Error(t, err, "error should occur when getting a bearer token")
+				assert.EqualError(t, err, scenario.expectedError)
+			}
+		})
+	}
 }

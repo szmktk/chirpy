@@ -3,6 +3,8 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,9 +26,6 @@ func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 }
 
 func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
-	// Use the jwt.ParseWithClaims function to validate the signature of the JWT and
-	// extract the claims into a *jwt.Token struct. An error will be returned if the token
-	// is invalid or has expired. If the token is invalid, return a 401 Unauthorized response from your handler.
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
 		return []byte(tokenSecret), nil
 	})
@@ -34,8 +33,6 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 
-	// If all is well with the token, use the token.Claims interface to get access to the user's id
-	// from the claims (which should be stored in the Subject field). Return the id as a uuid.UUID.
 	userID, err := token.Claims.GetSubject()
 	if err != nil {
 		return uuid.Nil, err
@@ -55,4 +52,18 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	}
 
 	return userUUID, nil
+}
+
+func GetBearerToken(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("authorization header not found")
+	}
+
+	split := strings.Split(authHeader, " ")
+	if len(split) != 2 || strings.ToLower(split[0]) != "bearer" {
+		return "", errors.New("invalid authorization header format")
+	}
+
+	return split[1], nil
 }

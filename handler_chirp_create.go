@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/szmktk/chirpy/internal/auth"
 	"github.com/szmktk/chirpy/internal/database"
 )
 
-const maxChirpLength = 140
+const maxChirpLength int = 140
 
 var forbiddenWords = map[string]bool{
 	"kerfuffle": true,
@@ -29,13 +30,24 @@ type Chirp struct {
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type input struct {
-		Body   string    `json:"body"`
-		UserId uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
+	}
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	parsedUserID, err := auth.ValidateJWT(token, cfg.tokenSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	payload := input{}
-	err := decoder.Decode(&payload)
+	err = decoder.Decode(&payload)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
 		return
@@ -50,7 +62,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	params := database.CreateChirpParams{
 		Body:   cleanedBody,
-		UserID: payload.UserId,
+		UserID: parsedUserID,
 	}
 	chirp, err := cfg.db.CreateChirp(r.Context(), params)
 	if err != nil {

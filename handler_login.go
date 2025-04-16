@@ -4,14 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/szmktk/chirpy/internal/auth"
 )
 
+const defaultTokenExpirySeconds int = 3600
+
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type input struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email              string `json:"email"`
+		Password           string `json:"password"`
+		TokenExpirySeconds *int   `json:"expires_in_seconds"`
 	}
 	type response struct {
 		User
@@ -19,6 +23,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	payload := input{}
+	tokenExpirySeconds := defaultTokenExpirySeconds
 	err := decoder.Decode(&payload)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
@@ -32,6 +37,9 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	if payload.Password == "" {
 		respondWithError(w, http.StatusBadRequest, "Password cannot be empty")
 		return
+	}
+	if payload.TokenExpirySeconds != nil {
+		tokenExpirySeconds = *payload.TokenExpirySeconds
 	}
 
 	user, err := cfg.db.GetUserByEmail(r.Context(), payload.Email)
@@ -47,12 +55,21 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	expiresIn := time.Second * time.Duration(tokenExpirySeconds)
+	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, expiresIn)
+	if err != nil {
+		logger.Info("Error issuing user token", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Error issuing user token")
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
 			ID:        user.ID,
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
+			Token:     token,
 		},
 	})
 }
