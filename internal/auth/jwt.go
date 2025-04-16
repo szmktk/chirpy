@@ -1,13 +1,18 @@
 package auth
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
+const tokenIssuer string = "chirpy"
+
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
+	signingKey := []byte(tokenSecret)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Issuer:    "chirpy",
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -15,11 +20,7 @@ func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 		Subject:   userID.String(),
 	})
 
-	tokenString, err := token.SignedString([]byte(tokenSecret))
-	if err != nil {
-		return "", nil
-	}
-	return tokenString, nil
+	return token.SignedString(signingKey)
 }
 
 func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
@@ -30,18 +31,27 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 		return []byte(tokenSecret), nil
 	})
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.Nil, err
 	}
 
 	// If all is well with the token, use the token.Claims interface to get access to the user's id
 	// from the claims (which should be stored in the Subject field). Return the id as a uuid.UUID.
 	userID, err := token.Claims.GetSubject()
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.Nil, err
 	}
+
+	issuer, err := token.Claims.GetIssuer()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if issuer != tokenIssuer {
+		return uuid.Nil, errors.New("invalid issuer")
+	}
+
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.Nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	return userUUID, nil

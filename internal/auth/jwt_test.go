@@ -44,28 +44,32 @@ func TestValidateJWT(t *testing.T) {
 	assert.NoError(t, err, "error should not occur when generating a valid JWT")
 
 	scenarios := []struct {
-		name          string
-		token         string
-		tokenSecret   string
-		expectedError error
+		name           string
+		token          string
+		tokenSecret    string
+		expectedUserID uuid.UUID
+		expectedError  error
 	}{
 		{
-			name:          "ok",
-			token:         validToken,
-			tokenSecret:   "TestSecret",
-			expectedError: nil,
+			name:           "ok",
+			token:          validToken,
+			tokenSecret:    "TestSecret",
+			expectedUserID: userID,
+			expectedError:  nil,
 		},
 		{
-			name:          "invalid token",
-			token:         "InvalidToken",
-			tokenSecret:   "TestSecret",
-			expectedError: jwt.ErrTokenMalformed,
+			name:           "invalid token",
+			token:          "InvalidToken",
+			tokenSecret:    "TestSecret",
+			expectedUserID: uuid.Nil,
+			expectedError:  jwt.ErrTokenMalformed,
 		},
 		{
-			name:          "wrong secret",
-			token:         validToken,
-			tokenSecret:   "WrongSecret",
-			expectedError: jwt.ErrTokenSignatureInvalid,
+			name:           "wrong secret",
+			token:          validToken,
+			tokenSecret:    "WrongSecret",
+			expectedUserID: uuid.Nil,
+			expectedError:  jwt.ErrTokenSignatureInvalid,
 		},
 	}
 
@@ -87,7 +91,8 @@ func TestValidateJWT(t *testing.T) {
 func TestMakeJWT_Expiration(t *testing.T) {
 	tokenSecret := "TestSecret"
 	userID := uuid.New()
-	expiresIn := time.Millisecond * 10 // Short expiration time
+	// Use short expiration time
+	expiresIn := time.Millisecond * 10
 
 	// Generate JWT
 	token, err := auth.MakeJWT(userID, tokenSecret, expiresIn)
