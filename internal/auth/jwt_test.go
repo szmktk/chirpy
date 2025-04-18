@@ -120,6 +120,12 @@ func TestGetBearerToken(t *testing.T) {
 			expectedToken: "myJsonWebToken",
 		},
 		{
+			name:          "missing auth header",
+			headers:       http.Header{},
+			expectedToken: "",
+			expectedError: "authorization header not found",
+		},
+		{
 			name:          "empty auth header",
 			headers:       http.Header{"Authorization": {""}},
 			expectedToken: "",
