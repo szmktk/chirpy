@@ -7,24 +7,24 @@ import (
 	"time"
 
 	"github.com/szmktk/chirpy/internal/auth"
+	"github.com/szmktk/chirpy/internal/database"
 )
 
-const defaultTokenExpirySeconds int = 3600
+const tokenExpirationTime time.Duration = time.Hour
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type input struct {
-		Email              string `json:"email"`
-		Password           string `json:"password"`
-		TokenExpirySeconds *int   `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	type response struct {
 		User
-		Token string `json:"token,omitempty"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	payload := input{}
-	tokenExpirySeconds := defaultTokenExpirySeconds
 	err := decoder.Decode(&payload)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
@@ -38,9 +38,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	if payload.Password == "" {
 		respondWithError(w, http.StatusBadRequest, "Password cannot be empty")
 		return
-	}
-	if payload.TokenExpirySeconds != nil {
-		tokenExpirySeconds = *payload.TokenExpirySeconds
 	}
 
 	user, err := cfg.db.GetUserByEmail(r.Context(), payload.Email)
@@ -56,11 +53,27 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expiresIn := time.Second * time.Duration(tokenExpirySeconds)
-	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, expiresIn)
+	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, tokenExpirationTime)
 	if err != nil {
 		logger.Info("Error issuing user token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Error issuing user token")
+		return
+	}
+
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		logger.Info("Error issuing refresh token", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Error issuing refresh token")
+		return
+	}
+
+	params := database.CreateRefreshTokenParams{
+		Token:  refreshToken,
+		UserID: user.ID,
+	}
+	_, err = cfg.db.CreateRefreshToken(r.Context(), params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error saving refresh token: %s", err))
 		return
 	}
 
@@ -71,6 +84,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token: token,
+		Token:        token,
+		RefreshToken: refreshToken,
 	})
 }
