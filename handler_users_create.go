@@ -18,18 +18,19 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
+type UserData struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
-	type input struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
 	type response struct {
 		User
 		Token string `json:"token,omitempty"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	payload := input{}
+	payload := UserData{}
 	err := decoder.Decode(&payload)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
