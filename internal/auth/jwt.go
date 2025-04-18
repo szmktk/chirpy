@@ -15,6 +15,8 @@ import (
 
 const tokenIssuer string = "chirpy"
 
+// MakeJWT generates a signed JWT for a given user ID using the provided secret key.
+// Returns the signed token string or an error if signing fails.
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 	signingKey := []byte(tokenSecret)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
@@ -27,6 +29,8 @@ func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 	return token.SignedString(signingKey)
 }
 
+// ValidateJWT parses and validates a JWT string using the provided secret.
+// Returns the parsed user ID or an error if validation fails.
 func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
 		return []byte(tokenSecret), nil
@@ -56,6 +60,8 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	return userUUID, nil
 }
 
+// GetBearerToken extracts the bearer token from an HTTP Authorization header.
+// Returns the token string or an error if the header is missing or malformed.
 func GetBearerToken(headers http.Header) (string, error) {
 	authHeader := headers.Get("Authorization")
 	if authHeader == "" {
@@ -70,6 +76,8 @@ func GetBearerToken(headers http.Header) (string, error) {
 	return split[1], nil
 }
 
+// MakeRefreshToken generates a new secure random refresh token.
+// Returns the token or an error if random data generation fails.
 func MakeRefreshToken() (string, error) {
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
