@@ -60,11 +60,10 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	cleanedBody := sanitizeInput(payload.Body)
 
-	params := database.CreateChirpParams{
+	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanedBody,
 		UserID: parsedUserID,
-	}
-	chirp, err := cfg.db.CreateChirp(r.Context(), params)
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating chirp: %s", err))
 		return

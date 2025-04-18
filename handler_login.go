@@ -67,11 +67,10 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := database.CreateRefreshTokenParams{
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
 		Token:  refreshToken,
 		UserID: user.ID,
-	}
-	_, err = cfg.db.CreateRefreshToken(r.Context(), params)
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error saving refresh token: %s", err))
 		return

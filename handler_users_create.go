@@ -52,11 +52,10 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	params := database.CreateUserParams{
+	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
 		Email:          payload.Email,
 		HashedPassword: hashedPassword,
-	}
-	user, err := cfg.db.CreateUser(r.Context(), params)
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating user: %s", err))
 		return

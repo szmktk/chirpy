@@ -39,12 +39,11 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	params := database.UpdateUserParams{
+	user, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
 		ID:             parsedUserID,
 		Email:          payload.Email,
 		HashedPassword: hashedPassword,
-	}
-	user, err := cfg.db.UpdateUser(r.Context(), params)
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error updating user data: %s", err))
 		return
