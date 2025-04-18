@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"encoding/hex"
 	"net/http"
 	"testing"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/szmktk/chirpy/internal/auth"
 )
 
@@ -158,4 +160,38 @@ func TestGetBearerToken(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMakeRefreshToken(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
+		token, err := auth.MakeRefreshToken()
+		require.NoError(t, err)
+		assert.NotEmpty(t, token)
+	})
+
+	t.Run("valid hex string", func(t *testing.T) {
+		token, err := auth.MakeRefreshToken()
+		require.NoError(t, err)
+
+		decoded, err := hex.DecodeString(token)
+		assert.NoError(t, err)
+		// 32 bytes = 64 hex characters
+		assert.Len(t, decoded, 32)
+	})
+
+	t.Run("correct length", func(t *testing.T) {
+		token, err := auth.MakeRefreshToken()
+		require.NoError(t, err)
+		assert.Len(t, token, 64)
+	})
+
+	t.Run("different tokens", func(t *testing.T) {
+		token1, err := auth.MakeRefreshToken()
+		require.NoError(t, err)
+
+		token2, err := auth.MakeRefreshToken()
+		require.NoError(t, err)
+
+		assert.NotEqual(t, token1, token2)
+	})
 }

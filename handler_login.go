@@ -10,7 +10,7 @@ import (
 	"github.com/szmktk/chirpy/internal/database"
 )
 
-const tokenExpirationTime time.Duration = time.Hour
+const accessTokenExpirationTime time.Duration = time.Hour
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type input struct {
@@ -53,7 +53,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, tokenExpirationTime)
+	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, accessTokenExpirationTime)
 	if err != nil {
 		logger.Info("Error issuing user token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Error issuing user token")

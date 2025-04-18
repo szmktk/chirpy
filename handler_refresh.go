@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/szmktk/chirpy/internal/auth"
 	"time"
+
+	"github.com/szmktk/chirpy/internal/auth"
 )
 
 func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
@@ -21,8 +21,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 
 	refreshToken, err := cfg.db.GetRefreshToken(r.Context(), token)
 	if err != nil {
-		logger.Info("Error reading refresh token", "err", err)
-		respondWithError(w, http.StatusUnauthorized, fmt.Sprintf("Error reading refresh token: %s", err))
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
@@ -36,7 +35,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := auth.MakeJWT(refreshToken.UserID, cfg.tokenSecret, tokenExpirationTime)
+	accessToken, err := auth.MakeJWT(refreshToken.UserID, cfg.tokenSecret, accessTokenExpirationTime)
 	if err != nil {
 		logger.Info("Error issuing user token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Error issuing user token")
@@ -55,7 +54,11 @@ func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cfg.db.UpdateRefreshToken(r.Context(), token)
+	if err := cfg.db.RevokeRefreshToken(r.Context(), token); err != nil {
+		logger.Info("Error revoking refresh token", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Error revoking refresh token")
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
