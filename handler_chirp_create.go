@@ -38,7 +38,6 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-
 	parsedUserID, err := auth.ValidateJWT(token, cfg.tokenSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
