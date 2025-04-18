@@ -25,7 +25,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if time.Now().After(refreshToken.ExpiresAt) {
+	if time.Now().UTC().After(refreshToken.ExpiresAt) {
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
