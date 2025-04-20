@@ -27,6 +27,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	polkaKey       string
 	tokenSecret    string
 }
 
@@ -37,6 +38,10 @@ func main() {
 		log.Fatal("DB_URL must be set")
 	}
 	platform := os.Getenv("PLATFORM")
+	polkaKey := os.Getenv("POLKA_KEY")
+	if polkaKey == "" {
+		log.Fatal("POLKA_KEY must be set")
+	}
 	tokenSecret := os.Getenv("TOKEN_SECRET")
 	if tokenSecret == "" {
 		log.Fatal("TOKEN_SECRET must be set")
@@ -54,6 +59,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		platform:       platform,
+		polkaKey:       polkaKey,
 		tokenSecret:    tokenSecret,
 	}
 

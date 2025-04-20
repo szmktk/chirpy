@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/szmktk/chirpy/internal/auth"
 )
 
 func (cfg *apiConfig) handlerUpgradeUserWebhook(w http.ResponseWriter, r *http.Request) {
@@ -16,6 +17,12 @@ func (cfg *apiConfig) handlerUpgradeUserWebhook(w http.ResponseWriter, r *http.R
 			UserID uuid.UUID `json:"user_id"`
 		} `json:"data"`
 		Event string `json:"event"`
+	}
+
+	if apiKey, err := auth.GetApiKey(r.Header); err != nil || apiKey != cfg.polkaKey {
+		logger.Debug("Error getting api key", "err", err)
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -32,6 +39,7 @@ func (cfg *apiConfig) handlerUpgradeUserWebhook(w http.ResponseWriter, r *http.R
 		respondWithNoContent(w)
 		return
 	}
+
 	logger.Info("handling webhook event", ".event", payload.Event)
 	_, err = cfg.db.UpgradeUser(r.Context(), payload.Data.UserID)
 	if err != nil {

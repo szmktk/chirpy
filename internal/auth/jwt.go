@@ -76,6 +76,22 @@ func GetBearerToken(headers http.Header) (string, error) {
 	return split[1], nil
 }
 
+// GetApiKey extracts the API Key from an HTTP Authorization header.
+// Returns the token string or an error if the header is missing or malformed.
+func GetApiKey(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("authorization header not found")
+	}
+
+	split := strings.Split(authHeader, " ")
+	if len(split) != 2 || strings.ToLower(split[0]) != "apikey" {
+		return "", errors.New("invalid authorization header format")
+	}
+
+	return split[1], nil
+}
+
 // MakeRefreshToken generates a new secure random refresh token.
 // Returns the token or an error if random data generation fails.
 func MakeRefreshToken() (string, error) {
