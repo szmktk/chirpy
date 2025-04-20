@@ -3,18 +3,25 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/szmktk/chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
+	ordering := strings.ToLower(r.URL.Query().Get("sort"))
 	authorID := r.URL.Query().Get("author_id")
 	if authorID == "" {
 		logger.Info("Getting all chirps stored in the database")
 		dbChirps, err := cfg.db.GetAllChirps(r.Context())
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting all chirps: %s", err))
+			return
+		}
+		if ordering == "desc" {
+			reverse(dbChirps)
+			respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
 			return
 		}
 
@@ -32,6 +39,12 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 	dbChirps, err := cfg.db.GetAllChirpsForUser(r.Context(), authorUUID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting all user chirps: %s", err))
+		return
+	}
+
+	if ordering == "desc" {
+		reverse(dbChirps)
+		respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
 		return
 	}
 	respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
@@ -74,4 +87,10 @@ func mapDbChirps(entities []database.Chirp) []Chirp {
 		})
 	}
 	return chirps
+}
+
+func reverse(records []database.Chirp) {
+	for i, j := 0, len(records)-1; i < j; i, j = i+1, j-1 {
+		records[i], records[j] = records[j], records[i]
+	}
 }
