@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -9,11 +11,10 @@ import (
 )
 
 func (cfg *apiConfig) handlerUpgradeUserWebhook(w http.ResponseWriter, r *http.Request) {
-	type Data struct {
-		UserID uuid.UUID `json:"user_id"`
-	}
 	type input struct {
-		Data  `json:"data"`
+		Data struct {
+			UserID uuid.UUID `json:"user_id"`
+		} `json:"data"`
 		Event string `json:"event"`
 	}
 
@@ -29,15 +30,19 @@ func (cfg *apiConfig) handlerUpgradeUserWebhook(w http.ResponseWriter, r *http.R
 
 	if payload.Event != "user.upgraded" {
 		respondWithNoContent(w)
-	} else {
-		logger.Info("handling webhook event", ".event", payload.Event)
-		_, err := cfg.db.UpgradeUser(r.Context(), payload.UserID)
-		if err != nil {
-			logger.Info("User not found", "user_id", payload.UserID)
+		return
+	}
+	logger.Info("handling webhook event", ".event", payload.Event)
+	_, err = cfg.db.UpgradeUser(r.Context(), payload.Data.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Info("User not found", "user_id", payload.Data.UserID)
 			respondWithError(w, http.StatusNotFound, "User with given id has not been found")
 			return
 		}
-
-		respondWithNoContent(w)
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error upgrading user: %s", err))
+		return
 	}
+
+	respondWithNoContent(w)
 }
