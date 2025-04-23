@@ -34,7 +34,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	payload := UserData{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error decoding JSON body: %s", err))
 		return
 	}
 
