@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/szmktk/chirpy/internal/config"
 	"github.com/szmktk/chirpy/internal/database"
 
 	"log/slog"
@@ -32,22 +32,12 @@ type apiConfig struct {
 }
 
 func main() {
-	godotenv.Load()
-	dbURL := os.Getenv("DB_URL")
-	if dbURL == "" {
-		log.Fatal("DB_URL must be set")
-	}
-	platform := os.Getenv("PLATFORM")
-	polkaKey := os.Getenv("POLKA_KEY")
-	if polkaKey == "" {
-		log.Fatal("POLKA_KEY must be set")
-	}
-	tokenSecret := os.Getenv("TOKEN_SECRET")
-	if tokenSecret == "" {
-		log.Fatal("TOKEN_SECRET must be set")
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	db, err := sql.Open("postgres", dbURL)
+	db, err := sql.Open("postgres", cfg.DBURL)
 	if err != nil {
 		log.Fatalf("Error opening database: %s", err)
 	}
@@ -58,9 +48,9 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
-		platform:       platform,
-		polkaKey:       polkaKey,
-		tokenSecret:    tokenSecret,
+		platform:       cfg.Platform,
+		polkaKey:       cfg.PolkaKey,
+		tokenSecret:    cfg.TokenSecret,
 	}
 
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filePathRoot)))))
