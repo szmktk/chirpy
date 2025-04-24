@@ -23,7 +23,7 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 	chirpID := r.PathValue("chirpID")
 	chirpUUID, err := uuid.Parse(chirpID)
 	if err != nil {
-		logger.Info("Error parsing UUID", "err", err)
+		logger.Warn("Error parsing UUID", "err", err)
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing UUID: %s", err))
 		return
 	}

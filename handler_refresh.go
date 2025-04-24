@@ -37,7 +37,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 
 	accessToken, err := auth.MakeJWT(refreshToken.UserID, cfg.tokenSecret, accessTokenExpirationTime)
 	if err != nil {
-		logger.Info("Error issuing user token", "err", err)
+		logger.Error("Error issuing user token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Error issuing user token")
 		return
 	}
@@ -55,7 +55,7 @@ func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := cfg.db.RevokeRefreshToken(r.Context(), token); err != nil {
-		logger.Info("Error revoking refresh token", "err", err)
+		logger.Error("Error revoking refresh token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Error revoking refresh token")
 		return
 	}

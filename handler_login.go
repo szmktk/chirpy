@@ -55,14 +55,14 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, accessTokenExpirationTime)
 	if err != nil {
-		logger.Info("Error issuing user token", "err", err)
+		logger.Error("Error issuing user token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Error issuing user token")
 		return
 	}
 
 	refreshToken, err := auth.MakeRefreshToken()
 	if err != nil {
-		logger.Info("Error issuing refresh token", "err", err)
+		logger.Error("Error issuing refresh token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Error issuing refresh token")
 		return
 	}
