@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,7 +59,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		HashedPassword: hashedPassword,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating user: %s", err))
+		if isDuplicateKeyError(err) {
+			respondWithError(w, http.StatusConflict, "A user with this email already exists")
+		} else {
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating user: %s", err))
+		}
 		return
 	}
 
@@ -71,4 +76,9 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 			IsChirpyRed: user.IsChirpyRed,
 		},
 	})
+}
+
+// isDuplicateKeyError checks if the error is a result of a duplicate key constraint.
+func isDuplicateKeyError(err error) bool {
+	return strings.Contains(err.Error(), "duplicate key value")
 }
