@@ -109,7 +109,7 @@ func TestMakeJWT_Expiration(t *testing.T) {
 	assert.Error(t, err, "error should occur when validating an expired JWT")
 }
 
-func TestGetBearerToken(t *testing.T) {
+func runAuthTokenTests(t *testing.T, extractorFunc func(http.Header) (string, error), scheme string) {
 	scenarios := []struct {
 		name          string
 		headers       http.Header
@@ -118,8 +118,8 @@ func TestGetBearerToken(t *testing.T) {
 	}{
 		{
 			name:          "ok",
-			headers:       http.Header{"Authorization": {"Bearer myJsonWebToken"}},
-			expectedToken: "myJsonWebToken",
+			headers:       http.Header{"Authorization": {scheme + " myToken"}},
+			expectedToken: "myToken",
 		},
 		{
 			name:          "missing auth header",
@@ -134,14 +134,14 @@ func TestGetBearerToken(t *testing.T) {
 			expectedError: "authorization header not found",
 		},
 		{
-			name:          "missing bearer prefix",
-			headers:       http.Header{"Authorization": {"myJsonWebToken"}},
+			name:          "missing " + scheme + " prefix",
+			headers:       http.Header{"Authorization": {"myToken"}},
 			expectedToken: "",
 			expectedError: "invalid authorization header format",
 		},
 		{
 			name:          "invalid auth header format",
-			headers:       http.Header{"Authorization": {"BearermyJsonWebToken"}},
+			headers:       http.Header{"Authorization": {scheme + "myToken"}},
 			expectedToken: "",
 			expectedError: "invalid authorization header format",
 		},
@@ -149,17 +149,25 @@ func TestGetBearerToken(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			token, err := auth.GetBearerToken(scenario.headers)
+			token, err := extractorFunc(scenario.headers)
 
 			if scenario.expectedError == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, scenario.expectedToken, token)
 			} else {
-				assert.Error(t, err, "error should occur when getting a bearer token")
+				assert.Error(t, err, "error should occur when getting the token")
 				assert.EqualError(t, err, scenario.expectedError)
 			}
 		})
 	}
+}
+
+func TestGetBearerToken(t *testing.T) {
+	runAuthTokenTests(t, auth.GetBearerToken, "Bearer")
+}
+
+func TestGetApiKey(t *testing.T) {
+	runAuthTokenTests(t, auth.GetApiKey, "Apikey")
 }
 
 func TestMakeRefreshToken(t *testing.T) {

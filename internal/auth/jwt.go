@@ -60,36 +60,32 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	return userUUID, nil
 }
 
+// extractAuthToken extracts a token for the given scheme from the HTTP Authorization header.
+// Returns the token string or an error if the header is missing or malformed.
+func extractAuthToken(headers http.Header, scheme string) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("authorization header not found")
+	}
+
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || strings.ToLower(parts[0]) != scheme {
+		return "", errors.New("invalid authorization header format")
+	}
+
+	return parts[1], nil
+}
+
 // GetBearerToken extracts the bearer token from an HTTP Authorization header.
 // Returns the token string or an error if the header is missing or malformed.
 func GetBearerToken(headers http.Header) (string, error) {
-	authHeader := headers.Get("Authorization")
-	if authHeader == "" {
-		return "", errors.New("authorization header not found")
-	}
-
-	split := strings.Split(authHeader, " ")
-	if len(split) != 2 || strings.ToLower(split[0]) != "bearer" {
-		return "", errors.New("invalid authorization header format")
-	}
-
-	return split[1], nil
+	return extractAuthToken(headers, "bearer")
 }
 
-// GetApiKey extracts the API Key from an HTTP Authorization header.
-// Returns the token string or an error if the header is missing or malformed.
+// GetApiKey extracts the API key from an HTTP Authorization header.
+// Returns the key string or an error if the header is missing or malformed.
 func GetApiKey(headers http.Header) (string, error) {
-	authHeader := headers.Get("Authorization")
-	if authHeader == "" {
-		return "", errors.New("authorization header not found")
-	}
-
-	split := strings.Split(authHeader, " ")
-	if len(split) != 2 || strings.ToLower(split[0]) != "apikey" {
-		return "", errors.New("invalid authorization header format")
-	}
-
-	return split[1], nil
+	return extractAuthToken(headers, "apikey")
 }
 
 // MakeRefreshToken generates a new secure random refresh token.
