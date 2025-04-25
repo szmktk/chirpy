@@ -50,7 +50,8 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	hashedPassword, err := auth.HashPassword(payload.Password)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error hashing user password: %s", err))
+		logger.Error("Error hashing user password: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
@@ -62,7 +63,8 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		if isDuplicateKeyError(err) {
 			respondWithError(w, http.StatusConflict, "A user with this email already exists")
 		} else {
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating user: %s", err))
+			logger.Error("Error creating user: %s", "err", err)
+			respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		}
 		return
 	}

@@ -35,7 +35,8 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := cfg.db.DeleteChirp(r.Context(), chirpUUID); err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error deleting chirp: %s", err))
+		logger.Error("Error deleting chirp: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 

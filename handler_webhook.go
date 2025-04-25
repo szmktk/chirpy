@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -30,7 +29,8 @@ func (cfg *apiConfig) handlerUpgradeUserWebhook(w http.ResponseWriter, r *http.R
 	payload := input{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
+		logger.Error("Error decoding JSON body: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 	logger.Info("decoded payload", "json", payload)
@@ -48,7 +48,8 @@ func (cfg *apiConfig) handlerUpgradeUserWebhook(w http.ResponseWriter, r *http.R
 			respondWithError(w, http.StatusNotFound, "User with given id has not been found")
 			return
 		}
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error upgrading user: %s", err))
+		logger.Error("Error upgrading user: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 

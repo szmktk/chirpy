@@ -16,7 +16,8 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 		logger.Info("Getting all chirps stored in the database")
 		dbChirps, err := cfg.db.GetAllChirps(r.Context())
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting all chirps: %s", err))
+			logger.Error("Error getting all chirps: %s", "err", err)
+			respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
 		if ordering == "desc" {
@@ -38,7 +39,8 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 	logger.Info("Getting all chirps for user", "user_id", authorUUID)
 	dbChirps, err := cfg.db.GetAllChirpsForUser(r.Context(), authorUUID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting all user chirps: %s", err))
+		logger.Error("Error getting all user chirps: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 

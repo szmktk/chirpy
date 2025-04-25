@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -43,7 +42,8 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	payload := input{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
+		logger.Error("Error decoding JSON body: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
@@ -59,7 +59,8 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		UserID: parsedUserID,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating chirp: %s", err))
+		logger.Error("Error creating chirp: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 

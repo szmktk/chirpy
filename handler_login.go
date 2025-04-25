@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -27,7 +26,8 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	payload := input{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
+		logger.Error("Error decoding JSON body: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
@@ -56,14 +56,14 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, accessTokenExpirationTime)
 	if err != nil {
 		logger.Error("Error issuing user token", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Error issuing user token")
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
 	refreshToken, err := auth.MakeRefreshToken()
 	if err != nil {
 		logger.Error("Error issuing refresh token", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Error issuing refresh token")
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
@@ -72,7 +72,8 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		UserID: user.ID,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error saving refresh token: %s", err))
+		logger.Error("Error saving refresh token: %s", "err", err)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
