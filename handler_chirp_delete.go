@@ -5,17 +5,12 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/szmktk/chirpy/internal/auth"
 )
 
 func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-	parsedUserID, err := auth.ValidateJWT(token, cfg.tokenSecret)
-	if err != nil {
+	ctxVal := r.Context().Value(contextKeyUserID)
+	parsedUserID, ok := ctxVal.(uuid.UUID)
+	if !ok {
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}

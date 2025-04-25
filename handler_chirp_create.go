@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/szmktk/chirpy/internal/auth"
 	"github.com/szmktk/chirpy/internal/database"
 )
 
@@ -33,20 +32,16 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		Body string `json:"body"`
 	}
 
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-	parsedUserID, err := auth.ValidateJWT(token, cfg.tokenSecret)
-	if err != nil {
+	ctxVal := r.Context().Value(contextKeyUserID)
+	parsedUserID, ok := ctxVal.(uuid.UUID)
+	if !ok {
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	payload := input{}
-	err = decoder.Decode(&payload)
+	err := decoder.Decode(&payload)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding JSON body: %s", err))
 		return
