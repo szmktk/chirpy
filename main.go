@@ -4,32 +4,17 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
-	"sync/atomic"
 	"time"
 
-	_ "github.com/lib/pq"
 	"github.com/szmktk/chirpy/internal/config"
 	"github.com/szmktk/chirpy/internal/database"
-
-	"log/slog"
-)
-
-const (
-	port         = 8080
-	filePathRoot = "."
+	"github.com/szmktk/chirpy/internal/server"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
-type apiConfig struct {
-	fileserverHits atomic.Int32
-	db             *database.Queries
-	platform       string
-	polkaKey       string
-	tokenSecret    string
-}
 
 func main() {
 	cfg, err := config.LoadConfig()
@@ -45,38 +30,35 @@ func main() {
 	dbQueries := database.New(db)
 
 	mux := http.NewServeMux()
-	apiCfg := apiConfig{
-		fileserverHits: atomic.Int32{},
-		db:             dbQueries,
-		platform:       cfg.Platform,
-		polkaKey:       cfg.PolkaKey,
-		tokenSecret:    cfg.TokenSecret,
+	srv, err := server.NewServer(cfg, dbQueries, logger)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filePathRoot)))))
-	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
-	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
-	mux.HandleFunc("PUT /api/users", apiCfg.authMiddleware(apiCfg.handlerUpdateUser))
-	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
-	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
-	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
-	mux.HandleFunc("POST /api/chirps", apiCfg.authMiddleware(apiCfg.handlerCreateChirp))
-	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
-	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.authMiddleware(apiCfg.handlerDeleteChirp))
-	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetAllChirps)
-	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerUpgradeUserWebhook)
-	mux.HandleFunc("GET /api/healthz", handlerHealth)
+	mux.Handle("/app/", http.StripPrefix("/app", srv.MiddlewareMetricsInc(http.FileServer(http.Dir(cfg.FilePathRoot)))))
+	mux.HandleFunc("GET /admin/metrics", srv.HandlerMetrics)
+	mux.HandleFunc("POST /admin/reset", srv.HandlerReset)
+	mux.HandleFunc("POST /api/users", srv.HandlerCreateUser)
+	mux.HandleFunc("PUT /api/users", srv.AuthMiddleware(srv.HandlerUpdateUser))
+	mux.HandleFunc("POST /api/login", srv.HandlerLogin)
+	mux.HandleFunc("POST /api/refresh", srv.HandlerRefresh)
+	mux.HandleFunc("POST /api/revoke", srv.HandlerRevoke)
+	mux.HandleFunc("POST /api/chirps", srv.AuthMiddleware(srv.HandlerCreateChirp))
+	mux.HandleFunc("GET /api/chirps/{chirpID}", srv.HandlerGetChirp)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", srv.AuthMiddleware(srv.HandlerDeleteChirp))
+	mux.HandleFunc("GET /api/chirps", srv.HandlerGetAllChirps)
+	mux.HandleFunc("POST /api/polka/webhooks", srv.HandlerUpgradeUserWebhook)
+	mux.HandleFunc("GET /api/healthz", srv.HandlerHealth)
 
 	var server *http.Server
 	server = &http.Server{
-		Addr:         fmt.Sprintf(":%d", port),
+		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      mux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 		IdleTimeout:  5 * time.Second,
 	}
 
-	logger.Info("Starting the server", "port", port, "server_dir", filePathRoot)
+	logger.Info("Starting the server", "port", cfg.Port, "server_dir", cfg.FilePathRoot)
 	log.Fatal(server.ListenAndServe())
 }

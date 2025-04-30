@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/szmktk/chirpy/internal/database"
 )
 
-func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) HandlerUpdateUser(w http.ResponseWriter, r *http.Request) {
 	type response struct {
 		User
 	}
@@ -25,25 +25,25 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 	payload := UserData{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		logger.Error("Error decoding JSON body: %s", "err", err)
+		srv.logger.Error("Error decoding JSON body: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
 	hashedPassword, err := auth.HashPassword(payload.Password)
 	if err != nil {
-		logger.Error("Error hashing user password: %s", "err", err)
+		srv.logger.Error("Error hashing user password: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
-	user, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
+	user, err := srv.db.UpdateUser(r.Context(), database.UpdateUserParams{
 		ID:             parsedUserID,
 		Email:          payload.Email,
 		HashedPassword: hashedPassword,
 	})
 	if err != nil {
-		logger.Error("Error updating user data: %s", "err", err)
+		srv.logger.Error("Error updating user data: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}

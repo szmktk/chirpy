@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"net/http"
@@ -8,7 +8,7 @@ import (
 	"github.com/szmktk/chirpy/internal/auth"
 )
 
-func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) HandlerRefresh(w http.ResponseWriter, r *http.Request) {
 	type response struct {
 		Token string `json:"token"`
 	}
@@ -19,7 +19,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshToken, err := cfg.db.GetRefreshToken(r.Context(), token)
+	refreshToken, err := srv.db.GetRefreshToken(r.Context(), token)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -35,9 +35,9 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := auth.MakeJWT(refreshToken.UserID, cfg.tokenSecret, accessTokenExpirationTime)
+	accessToken, err := auth.MakeJWT(refreshToken.UserID, srv.cfg.TokenSecret, accessTokenExpirationTime)
 	if err != nil {
-		logger.Error("Error issuing user token", "err", err)
+		srv.logger.Error("Error issuing user token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
@@ -47,15 +47,15 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) HandlerRevoke(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	if err := cfg.db.RevokeRefreshToken(r.Context(), token); err != nil {
-		logger.Error("Error revoking refresh token", "err", err)
+	if err := srv.db.RevokeRefreshToken(r.Context(), token); err != nil {
+		srv.logger.Error("Error revoking refresh token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}

@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -12,14 +12,14 @@ type contextKey string
 const contextKeyUserID contextKey = "userID"
 
 // authMiddleware extracts and validates the Bearer JWT token, storing the user ID in context.
-func (cfg *apiConfig) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func (srv *Server) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token, err := auth.GetBearerToken(r.Header)
 		if err != nil {
 			respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		userID, err := auth.ValidateJWT(token, cfg.tokenSecret)
+		userID, err := auth.ValidateJWT(token, srv.cfg.TokenSecret)
 		if err != nil {
 			respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 			return

@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) HandlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
 	ctxVal := r.Context().Value(contextKeyUserID)
 	parsedUserID, ok := ctxVal.(uuid.UUID)
 	if !ok {
@@ -18,14 +18,14 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 	chirpID := r.PathValue("chirpID")
 	chirpUUID, err := uuid.Parse(chirpID)
 	if err != nil {
-		logger.Warn("Error parsing UUID", "err", err)
+		srv.logger.Warn("Error parsing UUID", "err", err)
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing UUID: %s", err))
 		return
 	}
 
-	dbChirp, err := cfg.db.GetChirp(r.Context(), chirpUUID)
+	dbChirp, err := srv.db.GetChirp(r.Context(), chirpUUID)
 	if err != nil {
-		logger.Info("Chirp not found", "err", err)
+		srv.logger.Info("Chirp not found", "err", err)
 		respondWithError(w, http.StatusNotFound, "Chirp with given id has not been found")
 		return
 	}
@@ -34,8 +34,8 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := cfg.db.DeleteChirp(r.Context(), chirpUUID); err != nil {
-		logger.Error("Error deleting chirp: %s", "err", err)
+	if err := srv.db.DeleteChirp(r.Context(), chirpUUID); err != nil {
+		srv.logger.Error("Error deleting chirp: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}

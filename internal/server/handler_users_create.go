@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ type UserData struct {
 	Password string `json:"password"`
 }
 
-func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type response struct {
 		User
 		Token string `json:"token,omitempty"`
@@ -50,12 +50,12 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	hashedPassword, err := auth.HashPassword(payload.Password)
 	if err != nil {
-		logger.Error("Error hashing user password: %s", "err", err)
+		srv.logger.Error("Error hashing user password: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
-	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+	user, err := srv.db.CreateUser(r.Context(), database.CreateUserParams{
 		Email:          payload.Email,
 		HashedPassword: hashedPassword,
 	})
@@ -63,7 +63,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		if isDuplicateKeyError(err) {
 			respondWithError(w, http.StatusConflict, "A user with this email already exists")
 		} else {
-			logger.Error("Error creating user: %s", "err", err)
+			srv.logger.Error("Error creating user: %s", "err", err)
 			respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		}
 		return

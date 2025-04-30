@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -26,7 +26,7 @@ type Chirp struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type input struct {
 		Body string `json:"body"`
 	}
@@ -42,7 +42,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	payload := input{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		logger.Error("Error decoding JSON body: %s", "err", err)
+		srv.logger.Error("Error decoding JSON body: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
@@ -54,12 +54,12 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	cleanedBody := sanitizeInput(payload.Body)
 
-	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
+	chirp, err := srv.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanedBody,
 		UserID: parsedUserID,
 	})
 	if err != nil {
-		logger.Error("Error creating chirp: %s", "err", err)
+		srv.logger.Error("Error creating chirp: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}

@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 
 const accessTokenExpirationTime time.Duration = time.Hour
 
-func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	type input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -26,7 +26,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	payload := input{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		logger.Error("Error decoding JSON body: %s", "err", err)
+		srv.logger.Error("Error decoding JSON body: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
@@ -40,39 +40,39 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := cfg.db.GetUserByEmail(r.Context(), payload.Email)
+	user, err := srv.db.GetUserByEmail(r.Context(), payload.Email)
 	if err != nil {
-		logger.Info("User not found", "err", err)
+		srv.logger.Info("User not found", "err", err)
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
 		return
 	}
 
 	if err := auth.CheckPasswordHash(payload.Password, user.HashedPassword); err != nil {
-		logger.Info("User provided password does not match the hash stored in the database", "err", err)
+		srv.logger.Info("User provided password does not match the hash stored in the database", "err", err)
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
 		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, accessTokenExpirationTime)
+	token, err := auth.MakeJWT(user.ID, srv.cfg.TokenSecret, accessTokenExpirationTime)
 	if err != nil {
-		logger.Error("Error issuing user token", "err", err)
+		srv.logger.Error("Error issuing user token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
 	refreshToken, err := auth.MakeRefreshToken()
 	if err != nil {
-		logger.Error("Error issuing refresh token", "err", err)
+		srv.logger.Error("Error issuing refresh token", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
-	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+	_, err = srv.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
 		Token:  refreshToken,
 		UserID: user.ID,
 	})
 	if err != nil {
-		logger.Error("Error saving refresh token: %s", "err", err)
+		srv.logger.Error("Error saving refresh token: %s", "err", err)
 		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}

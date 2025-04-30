@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -10,6 +11,10 @@ import (
 
 // Config holds the application configuration loaded from environment variables.
 type Config struct {
+	// FilePathRoot is the root directory path for file storage.
+	FilePathRoot string
+	// Port specifies the TCP port on which the service will listen for incoming requests.
+	Port int
 	// DBURL is the database connection URL.
 	DBURL string
 	// Platform is the running platform identifier (optional).
@@ -24,6 +29,16 @@ type Config struct {
 // It returns an error if any required variable is missing.
 func LoadConfig() (*Config, error) {
 	_ = godotenv.Load(".env")
+
+	portStr := os.Getenv("PORT")
+	port := 8080
+	if portStr != "" {
+		var err error
+		port, err = strconv.Atoi(portStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value for PORT: %s", err)
+		}
+	}
 
 	var missing []string
 	dbURL := os.Getenv("DB_URL")
@@ -44,9 +59,11 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("missing required env vars: %s", strings.Join(missing, ", "))
 	}
 	return &Config{
-		DBURL:       dbURL,
-		Platform:    platform,
-		PolkaKey:    polkaKey,
-		TokenSecret: tokenSecret,
+		FilePathRoot: ".",
+		Port:         port,
+		DBURL:        dbURL,
+		Platform:     platform,
+		PolkaKey:     polkaKey,
+		TokenSecret:  tokenSecret,
 	}, nil
 }
