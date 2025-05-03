@@ -10,7 +10,7 @@ import (
 	"github.com/szmktk/chirpy/internal/auth"
 )
 
-func (srv *Server) HandlerUpgradeUserWebhook(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) UpgradeUserWebhook(w http.ResponseWriter, r *http.Request) error {
 	type input struct {
 		Data struct {
 			UserID uuid.UUID `json:"user_id"`
@@ -20,8 +20,7 @@ func (srv *Server) HandlerUpgradeUserWebhook(w http.ResponseWriter, r *http.Requ
 
 	if apiKey, err := auth.GetApiKey(r.Header); err != nil || apiKey != srv.cfg.PolkaKey {
 		srv.logger.Debug("Error getting api key", "err", err)
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Unauthorized"}
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -30,14 +29,13 @@ func (srv *Server) HandlerUpgradeUserWebhook(w http.ResponseWriter, r *http.Requ
 	err := decoder.Decode(&payload)
 	if err != nil {
 		srv.logger.Error("Error decoding JSON body: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 	srv.logger.Info("decoded payload", "json", payload)
 
 	if payload.Event != "user.upgraded" {
 		respondWithNoContent(w)
-		return
+		return nil
 	}
 
 	srv.logger.Info("handling webhook event", ".event", payload.Event)
@@ -45,13 +43,12 @@ func (srv *Server) HandlerUpgradeUserWebhook(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			srv.logger.Info("User not found", "user_id", payload.Data.UserID)
-			respondWithError(w, http.StatusNotFound, "User with given id has not been found")
-			return
+			return APIError{Status: http.StatusNotFound, Msg: "User with given id has not been found"}
 		}
 		srv.logger.Error("Error upgrading user: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	respondWithNoContent(w)
+	return nil
 }

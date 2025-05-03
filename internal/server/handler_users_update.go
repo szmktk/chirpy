@@ -9,7 +9,7 @@ import (
 	"github.com/szmktk/chirpy/internal/database"
 )
 
-func (srv *Server) HandlerUpdateUser(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) UpdateUser(w http.ResponseWriter, r *http.Request) error {
 	type response struct {
 		User
 	}
@@ -17,8 +17,7 @@ func (srv *Server) HandlerUpdateUser(w http.ResponseWriter, r *http.Request) {
 	ctxVal := r.Context().Value(contextKeyUserID)
 	parsedUserID, ok := ctxVal.(uuid.UUID)
 	if !ok {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -26,15 +25,13 @@ func (srv *Server) HandlerUpdateUser(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&payload)
 	if err != nil {
 		srv.logger.Error("Error decoding JSON body: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	hashedPassword, err := auth.HashPassword(payload.Password)
 	if err != nil {
 		srv.logger.Error("Error hashing user password: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	user, err := srv.db.UpdateUser(r.Context(), database.UpdateUserParams{
@@ -44,11 +41,10 @@ func (srv *Server) HandlerUpdateUser(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		srv.logger.Error("Error updating user data: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
-	respondWithJSON(w, http.StatusOK, response{
+	return respondWithJSON(w, http.StatusOK, response{
 		User: User{
 			ID:          user.ID,
 			CreatedAt:   user.CreatedAt,

@@ -36,19 +36,19 @@ func main() {
 	}
 
 	mux.Handle("/app/", http.StripPrefix("/app", srv.MiddlewareMetricsInc(http.FileServer(http.Dir(cfg.FilePathRoot)))))
-	mux.HandleFunc("GET /admin/metrics", srv.HandlerMetrics)
-	mux.HandleFunc("POST /admin/reset", srv.HandlerReset)
-	mux.HandleFunc("POST /api/users", srv.HandlerCreateUser)
-	mux.HandleFunc("PUT /api/users", srv.AuthMiddleware(srv.HandlerUpdateUser))
-	mux.HandleFunc("POST /api/login", srv.HandlerLogin)
-	mux.HandleFunc("POST /api/refresh", srv.HandlerRefresh)
-	mux.HandleFunc("POST /api/revoke", srv.HandlerRevoke)
-	mux.HandleFunc("POST /api/chirps", srv.AuthMiddleware(srv.HandlerCreateChirp))
-	mux.HandleFunc("GET /api/chirps/{chirpID}", srv.HandlerGetChirp)
-	mux.HandleFunc("DELETE /api/chirps/{chirpID}", srv.AuthMiddleware(srv.HandlerDeleteChirp))
-	mux.HandleFunc("GET /api/chirps", srv.HandlerGetAllChirps)
-	mux.HandleFunc("POST /api/polka/webhooks", srv.HandlerUpgradeUserWebhook)
-	mux.HandleFunc("GET /api/healthz", srv.HandlerHealth)
+	mux.HandleFunc("GET /admin/metrics", srv.Handler(srv.Metrics))
+	mux.HandleFunc("POST /admin/reset", srv.Handler(srv.Reset))
+	mux.HandleFunc("POST /api/users", srv.Handler(srv.CreateUser))
+	mux.HandleFunc("PUT /api/users", srv.AuthMiddleware(srv.Handler(srv.UpdateUser)))
+	mux.HandleFunc("POST /api/login", srv.Handler(srv.Login))
+	mux.HandleFunc("POST /api/refresh", srv.Handler(srv.Refresh))
+	mux.HandleFunc("POST /api/revoke", srv.Handler(srv.Revoke))
+	mux.HandleFunc("POST /api/chirps", srv.AuthMiddleware(srv.Handler(srv.CreateChirp)))
+	mux.HandleFunc("GET /api/chirps/{chirpID}", srv.Handler(srv.GetChirp))
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", srv.AuthMiddleware(srv.Handler(srv.DeleteChirp)))
+	mux.HandleFunc("GET /api/chirps", srv.Handler(srv.GetAllChirps))
+	mux.HandleFunc("POST /api/polka/webhooks", srv.Handler(srv.UpgradeUserWebhook))
+	mux.HandleFunc("GET /api/healthz", srv.Handler(srv.Health))
 
 	var server *http.Server
 	server = &http.Server{

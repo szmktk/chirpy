@@ -9,7 +9,7 @@ import (
 	"github.com/szmktk/chirpy/internal/database"
 )
 
-func (srv *Server) HandlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) GetAllChirps(w http.ResponseWriter, r *http.Request) error {
 	ordering := strings.ToLower(r.URL.Query().Get("sort"))
 	authorID := r.URL.Query().Get("author_id")
 	if authorID == "" {
@@ -17,58 +17,52 @@ func (srv *Server) HandlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
 		dbChirps, err := srv.db.GetAllChirps(r.Context())
 		if err != nil {
 			srv.logger.Error("Error getting all chirps: %s", "err", err)
-			respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-			return
+			return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 		}
 		if ordering == "desc" {
 			reverse(dbChirps)
-			respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
-			return
+			return respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
 		}
 
-		respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
-		return
+		return respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
+
 	}
 
 	authorUUID, err := uuid.Parse(authorID)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing UUID: %s", err))
-		return
+		return APIError{Status: http.StatusBadRequest, Msg: fmt.Sprintf("Error parsing UUID: %s", err)}
 	}
 
 	srv.logger.Info("Getting all chirps for user", "user_id", authorUUID)
 	dbChirps, err := srv.db.GetAllChirpsForUser(r.Context(), authorUUID)
 	if err != nil {
 		srv.logger.Error("Error getting all user chirps: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	if ordering == "desc" {
 		reverse(dbChirps)
-		respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
-		return
+		return respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
+
 	}
-	respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
+	return respondWithJSON(w, http.StatusOK, mapDbChirps(dbChirps))
 }
 
-func (srv *Server) HandlerGetChirp(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) GetChirp(w http.ResponseWriter, r *http.Request) error {
 	chirpID := r.PathValue("chirpID")
 	chirpUUID, err := uuid.Parse(chirpID)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing UUID: %s", err))
-		return
+		return APIError{Status: http.StatusBadRequest, Msg: fmt.Sprintf("Error parsing UUID: %s", err)}
 	}
 
 	dbChirp, err := srv.db.GetChirp(r.Context(), chirpUUID)
 	if err != nil {
 		srv.logger.Info("Chirp not found", "err", err)
-		respondWithError(w, http.StatusNotFound, "Chirp with given id has not been found")
-		return
+		return APIError{Status: http.StatusNotFound, Msg: "Chirp with given id has not been found"}
 	}
 
 	srv.logger.Info("Getting details of chirp", "id", chirpUUID)
-	respondWithJSON(w, http.StatusOK, Chirp{
+	return respondWithJSON(w, http.StatusOK, Chirp{
 		ID:        dbChirp.ID,
 		CreatedAt: dbChirp.CreatedAt,
 		UpdatedAt: dbChirp.UpdatedAt,

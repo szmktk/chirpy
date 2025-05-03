@@ -25,7 +25,7 @@ type UserData struct {
 	Password string `json:"password"`
 }
 
-func (srv *Server) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) CreateUser(w http.ResponseWriter, r *http.Request) error {
 	type response struct {
 		User
 		Token string `json:"token,omitempty"`
@@ -35,24 +35,24 @@ func (srv *Server) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	payload := UserData{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error decoding JSON body: %s", err))
-		return
+		return APIError{Status: http.StatusBadRequest, Msg: fmt.Sprintf("Error decoding JSON body: %s", err)}
+
 	}
 
 	if payload.Email == "" {
-		respondWithError(w, http.StatusBadRequest, "Email cannot be empty")
-		return
+		return APIError{Status: http.StatusBadRequest, Msg: "Email cannot be empty"}
+
 	}
 	if payload.Password == "" {
-		respondWithError(w, http.StatusBadRequest, "Password cannot be empty")
-		return
+		return APIError{Status: http.StatusBadRequest, Msg: "Password cannot be empty"}
+
 	}
 
 	hashedPassword, err := auth.HashPassword(payload.Password)
 	if err != nil {
 		srv.logger.Error("Error hashing user password: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
+
 	}
 
 	user, err := srv.db.CreateUser(r.Context(), database.CreateUserParams{
@@ -61,15 +61,15 @@ func (srv *Server) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if isDuplicateKeyError(err) {
-			respondWithError(w, http.StatusConflict, "A user with this email already exists")
+			return APIError{Status: http.StatusConflict, Msg: "A user with this email already exists"}
 		} else {
 			srv.logger.Error("Error creating user: %s", "err", err)
-			respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
+			return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 		}
-		return
+
 	}
 
-	respondWithJSON(w, http.StatusCreated, response{
+	return respondWithJSON(w, http.StatusCreated, response{
 		User: User{
 			ID:          user.ID,
 			CreatedAt:   user.CreatedAt,

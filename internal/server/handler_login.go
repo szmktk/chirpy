@@ -11,7 +11,7 @@ import (
 
 const accessTokenExpirationTime time.Duration = time.Hour
 
-func (srv *Server) HandlerLogin(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) Login(w http.ResponseWriter, r *http.Request) error {
 	type input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -27,44 +27,37 @@ func (srv *Server) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&payload)
 	if err != nil {
 		srv.logger.Error("Error decoding JSON body: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	if payload.Email == "" {
-		respondWithError(w, http.StatusBadRequest, "Email cannot be empty")
-		return
+		return APIError{Status: http.StatusBadRequest, Msg: "Email cannot be empty"}
 	}
 	if payload.Password == "" {
-		respondWithError(w, http.StatusBadRequest, "Password cannot be empty")
-		return
+		return APIError{Status: http.StatusBadRequest, Msg: "Password cannot be empty"}
 	}
 
 	user, err := srv.db.GetUserByEmail(r.Context(), payload.Email)
 	if err != nil {
 		srv.logger.Info("User not found", "err", err)
-		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Incorrect email or password"}
 	}
 
 	if err := auth.CheckPasswordHash(payload.Password, user.HashedPassword); err != nil {
 		srv.logger.Info("User provided password does not match the hash stored in the database", "err", err)
-		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Incorrect email or password"}
 	}
 
 	token, err := auth.MakeJWT(user.ID, srv.cfg.TokenSecret, accessTokenExpirationTime)
 	if err != nil {
 		srv.logger.Error("Error issuing user token", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	refreshToken, err := auth.MakeRefreshToken()
 	if err != nil {
 		srv.logger.Error("Error issuing refresh token", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	_, err = srv.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
@@ -73,11 +66,10 @@ func (srv *Server) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		srv.logger.Error("Error saving refresh token: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
-	respondWithJSON(w, http.StatusOK, response{
+	return respondWithJSON(w, http.StatusOK, response{
 		User: User{
 			ID:          user.ID,
 			CreatedAt:   user.CreatedAt,

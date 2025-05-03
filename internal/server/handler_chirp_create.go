@@ -26,7 +26,7 @@ type Chirp struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-func (srv *Server) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) CreateChirp(w http.ResponseWriter, r *http.Request) error {
 	type input struct {
 		Body string `json:"body"`
 	}
@@ -34,8 +34,7 @@ func (srv *Server) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	ctxVal := r.Context().Value(contextKeyUserID)
 	parsedUserID, ok := ctxVal.(uuid.UUID)
 	if !ok {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Unauthorized"}
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -43,13 +42,11 @@ func (srv *Server) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&payload)
 	if err != nil {
 		srv.logger.Error("Error decoding JSON body: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	if len(payload.Body) > maxChirpLength {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
-		return
+		return APIError{Status: http.StatusBadRequest, Msg: "Chirp is too long"}
 	}
 
 	cleanedBody := sanitizeInput(payload.Body)
@@ -60,11 +57,10 @@ func (srv *Server) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		srv.logger.Error("Error creating chirp: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
-	respondWithJSON(w, http.StatusCreated, Chirp{
+	return respondWithJSON(w, http.StatusCreated, Chirp{
 		ID:        chirp.ID,
 		CreatedAt: chirp.CreatedAt,
 		UpdatedAt: chirp.UpdatedAt,

@@ -7,12 +7,11 @@ import (
 	"github.com/google/uuid"
 )
 
-func (srv *Server) HandlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) DeleteChirp(w http.ResponseWriter, r *http.Request) error {
 	ctxVal := r.Context().Value(contextKeyUserID)
 	parsedUserID, ok := ctxVal.(uuid.UUID)
 	if !ok {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Unauthorized"}
 	}
 
 	chirpID := r.PathValue("chirpID")
@@ -20,25 +19,22 @@ func (srv *Server) HandlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		srv.logger.Warn("Error parsing UUID", "err", err)
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing UUID: %s", err))
-		return
 	}
 
 	dbChirp, err := srv.db.GetChirp(r.Context(), chirpUUID)
 	if err != nil {
 		srv.logger.Info("Chirp not found", "err", err)
-		respondWithError(w, http.StatusNotFound, "Chirp with given id has not been found")
-		return
+		return APIError{Status: http.StatusNotFound, Msg: "Chirp with given id has not been found"}
 	}
 	if dbChirp.UserID != parsedUserID {
-		respondWithError(w, http.StatusForbidden, "Deleting chirps of other users is not allowed")
-		return
+		return APIError{Status: http.StatusForbidden, Msg: "Deleting chirps of other users is not allowed"}
 	}
 
 	if err := srv.db.DeleteChirp(r.Context(), chirpUUID); err != nil {
 		srv.logger.Error("Error deleting chirp: %s", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	respondWithNoContent(w)
+	return nil
 }

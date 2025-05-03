@@ -8,57 +8,51 @@ import (
 	"github.com/szmktk/chirpy/internal/auth"
 )
 
-func (srv *Server) HandlerRefresh(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) Refresh(w http.ResponseWriter, r *http.Request) error {
 	type response struct {
 		Token string `json:"token"`
 	}
 
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Unauthorized"}
 	}
 
 	refreshToken, err := srv.db.GetRefreshToken(r.Context(), token)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Unauthorized"}
 	}
 
 	if time.Now().UTC().After(refreshToken.ExpiresAt) {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Unauthorized"}
 	}
 
 	if refreshToken.RevokedAt.Valid {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Unauthorized"}
 	}
 
 	accessToken, err := auth.MakeJWT(refreshToken.UserID, srv.cfg.TokenSecret, accessTokenExpirationTime)
 	if err != nil {
 		srv.logger.Error("Error issuing user token", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
-	respondWithJSON(w, http.StatusOK, response{
+	return respondWithJSON(w, http.StatusOK, response{
 		Token: accessToken,
 	})
 }
 
-func (srv *Server) HandlerRevoke(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) Revoke(w http.ResponseWriter, r *http.Request) error {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return APIError{Status: http.StatusUnauthorized, Msg: "Unauthorized"}
 	}
 
 	if err := srv.db.RevokeRefreshToken(r.Context(), token); err != nil {
 		srv.logger.Error("Error revoking refresh token", "err", err)
-		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
+		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	respondWithNoContent(w)
+	return nil
 }
