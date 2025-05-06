@@ -155,3 +155,4 @@ tags
 # End of https://www.toptal.com/developers/gitignore/api/vim,intellij+all,visualstudiocode,go
 
 .env
+.env.local

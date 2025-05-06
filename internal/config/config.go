@@ -28,7 +28,7 @@ type Config struct {
 // LoadConfig reads environment variables (optionally from a .env file) and returns a Config.
 // It returns an error if any required variable is missing.
 func LoadConfig() (*Config, error) {
-	_ = godotenv.Load(".env")
+	_ = godotenv.Load(".env.local")
 
 	portStr := os.Getenv("PORT")
 	port := 8080

@@ -5,10 +5,12 @@ Inspired by the [Learn HTTP Servers](https://www.boot.dev/courses/learn-http-ser
 
 ![](assets/logo.png)
 
+
 ## Prerequisites
 
 - Go 1.23 or later
 - PostgreSQL database
+
 
 ## Configuration
 
@@ -18,6 +20,7 @@ The service requires the following environment variables:
 - `PORT`: Port number for the server (default: 8080)
 - `JWT_SECRET`: Secret key for JWT token generation
 - `POLKA_API_KEY`: API key for Polka webhook integration
+
 
 ## Installation
 
@@ -40,6 +43,7 @@ JWT_SECRET=your-secret-key
 POLKA_API_KEY=your-polka-api-key
 ```
 
+
 ## Running the Service
 
 1. Start the service:
@@ -48,6 +52,7 @@ go run .
 ```
 
 The server will start on the configured port (default: 8080).
+
 
 ## API Endpoints
 
@@ -74,7 +79,10 @@ The server will start on the configured port (default: 8080).
 - `GET /api/healthz` - Health check endpoint
 - `POST /api/polka/webhooks` - Polka webhook endpoint
 
+
 ## Development
+
+### Running Tests
 
 The project uses standard Go tooling. You can run tests using:
 
@@ -82,8 +90,26 @@ The project uses standard Go tooling. You can run tests using:
 go test ./...
 ```
 
-In order to have "hot-reload" feature during local development you can use [`entr`](https://github.com/eradman/entr):
+### Local Development
+
+For a "hot-reload" feature during local development, you can use [`entr`](https://github.com/eradman/entr):
 
 ```bash
 find . -type f -name '*.go' | entr -r go run .
 ```
+
+When using this approach you need only the dependencies specified in [docker-compose.yaml](./docker-compose.yaml) file:
+
+```
+docker compose -f docker-compose.yaml up -d
+```
+
+### Running the Backend in a Docker Container
+
+To run the backend component in a Docker container, simply run:
+
+```
+docker compose up -d
+```
+
+This command will also take [docker-compose.override.yaml](./docker-compose.override.yaml) file into account, which contains the backend service specification.

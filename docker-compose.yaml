@@ -1,8 +1,8 @@
 services:
   db:
+    image: postgres:15
     ports:
       - "5432:5432"
-    image: postgres:15
     volumes:
       - chirpy-db-data:/var/lib/postgresql/data/pgdata
     env_file:
