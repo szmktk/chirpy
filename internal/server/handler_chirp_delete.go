@@ -18,7 +18,7 @@ func (srv *Server) DeleteChirp(w http.ResponseWriter, r *http.Request) error {
 	chirpUUID, err := uuid.Parse(chirpID)
 	if err != nil {
 		srv.logger.Warn("Error parsing UUID", "err", err)
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing UUID: %s", err))
+		return APIError{Status: http.StatusBadRequest, Msg: fmt.Sprintf("Error parsing UUID: %s", err)}
 	}
 
 	dbChirp, err := srv.db.GetChirp(r.Context(), chirpUUID)
