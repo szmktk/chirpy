@@ -16,7 +16,7 @@ func (srv *Server) GetAllChirps(w http.ResponseWriter, r *http.Request) error {
 		srv.logger.Info("Getting all chirps stored in the database")
 		dbChirps, err := srv.db.GetAllChirps(r.Context())
 		if err != nil {
-			srv.logger.Error("Error getting all chirps: %s", "err", err)
+			srv.logger.Error("Error getting all chirps", "err", err)
 			return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 		}
 		if ordering == "desc" {
@@ -36,7 +36,7 @@ func (srv *Server) GetAllChirps(w http.ResponseWriter, r *http.Request) error {
 	srv.logger.Info("Getting all chirps for user", "user_id", authorUUID)
 	dbChirps, err := srv.db.GetAllChirpsForUser(r.Context(), authorUUID)
 	if err != nil {
-		srv.logger.Error("Error getting all user chirps: %s", "err", err)
+		srv.logger.Error("Error getting all user chirps", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 

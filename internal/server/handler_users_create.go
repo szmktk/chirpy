@@ -50,7 +50,7 @@ func (srv *Server) CreateUser(w http.ResponseWriter, r *http.Request) error {
 
 	hashedPassword, err := auth.HashPassword(payload.Password)
 	if err != nil {
-		srv.logger.Error("Error hashing user password: %s", "err", err)
+		srv.logger.Error("Error hashing user password", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 
 	}
@@ -63,7 +63,7 @@ func (srv *Server) CreateUser(w http.ResponseWriter, r *http.Request) error {
 		if isDuplicateKeyError(err) {
 			return APIError{Status: http.StatusConflict, Msg: "A user with this email already exists"}
 		} else {
-			srv.logger.Error("Error creating user: %s", "err", err)
+			srv.logger.Error("Error creating user", "err", err)
 			return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 		}
 

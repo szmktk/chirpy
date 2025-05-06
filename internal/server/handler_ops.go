@@ -34,7 +34,7 @@ func (srv *Server) Reset(w http.ResponseWriter, r *http.Request) error {
 
 	srv.fileserverHits.Store(0)
 	if err := srv.db.DeleteUsers(r.Context()); err != nil {
-		srv.logger.Error("Error deleting users: %s", "err", err)
+		srv.logger.Error("Error deleting users", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 	return respondWithJSON(w, http.StatusOK, map[string]string{"message": "Hits reset to 0 and database reset to initial state"})

@@ -28,7 +28,7 @@ func (srv *Server) UpgradeUserWebhook(w http.ResponseWriter, r *http.Request) er
 	payload := input{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		srv.logger.Error("Error decoding JSON body: %s", "err", err)
+		srv.logger.Error("Error decoding JSON body", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 	srv.logger.Info("decoded payload", "json", payload)
@@ -45,7 +45,7 @@ func (srv *Server) UpgradeUserWebhook(w http.ResponseWriter, r *http.Request) er
 			srv.logger.Info("User not found", "user_id", payload.Data.UserID)
 			return APIError{Status: http.StatusNotFound, Msg: "User with given id has not been found"}
 		}
-		srv.logger.Error("Error upgrading user: %s", "err", err)
+		srv.logger.Error("Error upgrading user", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 

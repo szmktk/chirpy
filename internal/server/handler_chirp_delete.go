@@ -31,7 +31,7 @@ func (srv *Server) DeleteChirp(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err := srv.db.DeleteChirp(r.Context(), chirpUUID); err != nil {
-		srv.logger.Error("Error deleting chirp: %s", "err", err)
+		srv.logger.Error("Error deleting chirp", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 

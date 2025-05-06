@@ -26,7 +26,7 @@ func (srv *Server) Login(w http.ResponseWriter, r *http.Request) error {
 	payload := input{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		srv.logger.Error("Error decoding JSON body: %s", "err", err)
+		srv.logger.Error("Error decoding JSON body", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
@@ -65,7 +65,7 @@ func (srv *Server) Login(w http.ResponseWriter, r *http.Request) error {
 		UserID: user.ID,
 	})
 	if err != nil {
-		srv.logger.Error("Error saving refresh token: %s", "err", err)
+		srv.logger.Error("Error saving refresh token", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 

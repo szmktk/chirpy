@@ -24,13 +24,13 @@ func (srv *Server) UpdateUser(w http.ResponseWriter, r *http.Request) error {
 	payload := UserData{}
 	err := decoder.Decode(&payload)
 	if err != nil {
-		srv.logger.Error("Error decoding JSON body: %s", "err", err)
+		srv.logger.Error("Error decoding JSON body", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
 	hashedPassword, err := auth.HashPassword(payload.Password)
 	if err != nil {
-		srv.logger.Error("Error hashing user password: %s", "err", err)
+		srv.logger.Error("Error hashing user password", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
@@ -40,7 +40,7 @@ func (srv *Server) UpdateUser(w http.ResponseWriter, r *http.Request) error {
 		HashedPassword: hashedPassword,
 	})
 	if err != nil {
-		srv.logger.Error("Error updating user data: %s", "err", err)
+		srv.logger.Error("Error updating user data", "err", err)
 		return APIError{Status: http.StatusInternalServerError, Msg: "Internal Server Error"}
 	}
 
